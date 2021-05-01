@@ -27,7 +27,7 @@
     <load-on-startup>1</load-on-startup>
   </servlet>
 
-
+<!--设置Servlet拦截匹配规则，拦截下来.form请求，将请求分发给相应的Controller业务控制器处理-->
   <servlet-mapping>
     <servlet-name>dispatcher</servlet-name>
     <url-pattern>*.form</url-pattern>
