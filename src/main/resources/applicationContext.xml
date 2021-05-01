@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:mybatis-spring="http://www.springframework.org/schema/c"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd">
+
+    <!-- spring希望管理所有业务逻辑组件.数据源、事务控制、aop 等  -->
+    <!--
+    开启组件扫描
+    不扫描Controller，其他都扫描
+    -->
+    <context:component-scan base-package="com.demo">
+        <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+    </context:component-scan>
+
+
+    <!--    引入数据库的配置文件-->
+    <context:property-placeholder location="classpath:config.properties"/>
+    <!--   引入数据源c3p0，从配置文件中读取数据库4个基本信息 -->
+    <bean id="pooledDataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
+        <property name="jdbcUrl" value="${url}"/>
+        <property name="driverClass" value="${driver}"/>
+        <property name="user" value="${username}"/>
+        <property name="password" value="${password}"/>
+    </bean>
+
+    <!--
+        spring事务管理器
+            需要控制数据库连接池中所有的连接，包括连接的开启、提交、关闭
+    -->
+    <bean id="dataSourceTransactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="pooledDataSource"/>
+    </bean>
+
+    <!--    开启基于注解的事务-->
+    <tx:annotation-driven transaction-manager="dataSourceTransactionManager"/>
+
+
+    <!--    mybatis的配置-->
+    <!--
+    会创建出sqlSessionFactory对象
+    这就相当于spring已启动就代替我们去创建sqlSessionFactory对象，
+    通过sqlSessionFactory来获取sqlSession
+
+    之前创建sqlSessionFactory需要写一长串的代码，但是现在不需要了
+    String resource = "MyBatis.xml";
+    InputStream inputStream = Resources.getResourceAsStream(resource);
+    SqlSessionFactory sqlSessionFactory = new SqlSessionFactoryBuilder().build(inputStream);
+     -->
+    <bean id="sessionFactoryBean" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <!--        指定数据源，-->
+        <property name="dataSource" ref="pooledDataSource"/>
+        <!--        指定mybatis全局配置文件，配合使用-->
+        <property name="configLocation" value="classpath:mybatis.xml"/>
+        <!--       指定mapper.xml文件的位置 -->
+        <property name="mapperLocations" value="classpath:mybatis.mapper"/>
+    </bean>
+
+
+    <!--
+    扫描所有mapper接口的实现，让这些mapper能够自动注入
+    base-package="com.demo.dao"：指定mapper接口的路径
+    -->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.demo.dao"/>
+    </bean>
+
+    <!--
+    整合mybatis
+        目的：
+            1.spring管理所有组件，包括mybatis中mapper的实现类；
+                这样业务逻辑层（service）要调用Dao层的时候，只需要使用依赖注入（@Autowired）自动注入mapper
+
+            2.spring用来管理事务
+    -->
+
+
+</beans>
